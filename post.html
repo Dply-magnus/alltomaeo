@@ -1,0 +1,151 @@
+---
+layout: default
+title: Inlägg
+---
+
+<style>
+  .post-layout {
+    display: flex;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .post-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .post-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+  }
+  .post-sidebar h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+  }
+  .post-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .post-sidebar li {
+    margin-bottom: 0.6rem;
+  }
+  .post-sidebar li a {
+    font-size: 0.85rem;
+    color: #494e52;
+    text-decoration: none;
+  }
+  .post-sidebar li a:hover {
+    text-decoration: underline;
+  }
+  .post-sidebar li time {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+  }
+  .post-sidebar .show-all {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  @media (max-width: 768px) {
+    .post-layout {
+      flex-direction: column;
+    }
+    .post-sidebar {
+      width: 100%;
+    }
+  }
+</style>
+
+<div class="post-layout">
+  <div class="post-main">
+    <div id="post" class="page">
+      <p>Laddar...</p>
+    </div>
+  </div>
+  <aside class="post-sidebar">
+    <h3>Senaste artiklarna</h3>
+    <ul id="recent-posts">
+      <li>Laddar...</li>
+    </ul>
+    <a href="{{ site.baseurl }}/" class="show-all">Visa alla →</a>
+  </aside>
+</div>
+
+<script src="{{ site.baseurl }}/config.js"></script>
+<script>
+  function toSlug(str) {
+    return str
+      .toLowerCase()
+      .replace(/[åä]/g, 'a')
+      .replace(/ö/g, 'o')
+      .replace(/é/g, 'e')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  async function loadPost() {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const id = params.get('id');
+
+    const allRes = await fetch(`${SUPABASE_URL}/rest/v1/blog_posts_aeo?select=*&order=published_at.desc`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+    const allPosts = await allRes.json();
+
+    const post = id
+      ? allPosts.find(p => p.id === parseInt(id))
+      : allPosts.find(p => toSlug(p.title) === slug);
+
+    if (!post) {
+      document.getElementById('post').innerHTML = '<p>Inlägget hittades inte.</p>';
+      return;
+    }
+
+    document.title = post.title + ' | Allt om AEO';
+
+    document.getElementById('post').innerHTML = `
+      <article class="page" itemscope itemtype="https://schema.org/BlogPosting">
+        <meta itemprop="headline" content="${post.title}">
+        <div class="page__inner-wrap">
+          <header>
+            <h1 class="page__title" itemprop="headline">${post.title}</h1>
+            <p class="page__meta">
+              <time datetime="${post.published_at}">${new Date(post.published_at).toLocaleDateString('sv-SE')}</time>
+            </p>
+          </header>
+          <section class="page__content" itemprop="text">
+            ${post.image_url ? `<figure>
+              <img src="${post.image_url}" alt="${post.title}" class="align-center">
+            </figure>` : ''}
+            <p><em>${post.ingress}</em></p>
+            ${post.body_html}
+            ${post.links_html ? post.links_html : ''}
+          </section>
+        </div>
+      </article>
+    `;
+
+    const recentPosts = allPosts
+      .filter(p => p.id !== post.id)
+      .slice(0, 10);
+
+    document.getElementById('recent-posts').innerHTML = recentPosts.map(p => `
+      <li>
+        <a href="{{ site.baseurl }}/post.html?slug=${toSlug(p.title)}">${p.title}</a>
+        <time>${new Date(p.published_at).toLocaleDateString('sv-SE')}</time>
+      </li>
+    `).join('');
+  }
+
+  loadPost();
+</script>
