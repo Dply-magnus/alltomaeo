@@ -1,0 +1,18 @@
+remote_theme: mmistakes/minimal-mistakes
+plugins:
+  - jekyll-remote-theme
+  - jekyll-include-cache
+
+title: Allt om AEO
+description: Insikter om Answer Engine Optimization
+locale: sv-SE
+baseurl: ""
+url: https://alltomaeo.se
+
+minimal_mistakes_skin: default
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
